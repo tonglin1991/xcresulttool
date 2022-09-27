@@ -510,6 +510,10 @@ export class Formatter {
             `${anchorTag}<h5>${testName}&nbsp;${anchorBack}</h5>`
           )
 
+          if (passedRate === total) {
+            continue
+          }
+
           const testsStatsLines: string[] = []
 
           testsStatsLines.push('<table>')
