@@ -510,7 +510,7 @@ export class Formatter {
             `${anchorTag}<h5>${testName}&nbsp;${anchorBack}</h5>`
           )
 
-          if (passedRate === total) {
+          if (passed / total === 1 ) {
             continue
           }
 
