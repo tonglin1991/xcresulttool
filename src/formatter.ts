@@ -318,6 +318,10 @@ export class Formatter {
                   testResult.summaryRef.id
                 )
 
+                if (summary.testStatus === 'Success') {
+                  continue
+                }
+
                 const testFailureGroup = new TestFailureGroup(
                   testResultSummaryName || '',
                   summary.identifier || '',
@@ -489,65 +493,9 @@ export class Formatter {
               },
               [0, 0, 0, 0, 0, 0]
             )
-
-          const testName = `${groupIdentifier}`
-          const passedRate = ((passed / total) * 100).toFixed(0)
-          const failedRate = ((failed / total) * 100).toFixed(0)
-          const skippedRate = ((skipped / total) * 100).toFixed(0)
-          const expectedFailureRate = ((expectedFailure / total) * 100).toFixed(
-            0
-          )
-          const testDuration = duration.toFixed(2)
-
-          const anchorTag = anchorNameTag(
-            `${testResultSummaryName}_${groupIdentifier}`
-          )
-          const anchorName = anchorIdentifier(
-            `${testResultSummaryName}_${groupIdentifier}_summary`
-          )
-          const anchorBack = `[${backIcon}](${anchorName})`
-          testDetail.lines.push(
-            `${anchorTag}<h5>${testName}&nbsp;${anchorBack}</h5>`
-          )
-
-          if (passed / total === 1 ) {
-            continue
-          }
-
-          const testsStatsLines: string[] = []
-
-          testsStatsLines.push('<table>')
-          testsStatsLines.push('<tr>')
-          const header = [
-            `<th>${passedIcon}`,
-            `<th>${failedIcon}`,
-            `<th>${skippedIcon}`,
-            `<th>${expectedFailureIcon}`,
-            `<th>:stopwatch:`
-          ].join('')
-          testsStatsLines.push(header)
-
-          testsStatsLines.push('<tr>')
-          let failedCount: string
-          if (failed > 0) {
-            failedCount = `<b>${failed} (${failedRate}%)</b>`
-          } else {
-            failedCount = `${failed} (${failedRate}%)`
-          }
-          const cols = [
-            `<td align="right" width="154px">${passed} (${passedRate}%)`,
-            `<td align="right" width="154px">${failedCount}`,
-            `<td align="right" width="154px">${skipped} (${skippedRate}%)`,
-            `<td align="right" width="154px">${expectedFailure} (${expectedFailureRate}%)`,
-            `<td align="right" width="154px">${testDuration}s`
-          ].join('')
-          testsStatsLines.push(cols)
-          testsStatsLines.push('</table>\n')
-
-          testDetail.lines.push(testsStatsLines.join('\n'))
-
+            
           const testDetailTable: string[] = []
-          testDetailTable.push(`<table>`)
+          
 
           const configurationGroup = details.reduce(
             (groups: {[key: string]: actionTestSummaries}, detail) => {
@@ -599,6 +547,65 @@ export class Formatter {
                 }
               }
             }
+
+            if (groupStatus = 'Success') {
+              continue
+            } else {
+              const testName = `${groupIdentifier}`
+              const passedRate = ((passed / total) * 100).toFixed(0)
+              const failedRate = ((failed / total) * 100).toFixed(0)
+              const skippedRate = ((skipped / total) * 100).toFixed(0)
+              const expectedFailureRate = ((expectedFailure / total) * 100).toFixed(
+                0
+              )
+              const testDuration = duration.toFixed(2)
+    
+              const anchorTag = anchorNameTag(
+                `${testResultSummaryName}_${groupIdentifier}`
+              )
+              const anchorName = anchorIdentifier(
+                `${testResultSummaryName}_${groupIdentifier}_summary`
+              )
+              const anchorBack = `[${backIcon}](${anchorName})`
+              testDetail.lines.push(
+                `${anchorTag}<h5>${testName}&nbsp;${anchorBack}</h5>`
+              )
+    
+              const testsStatsLines: string[] = []
+    
+              testsStatsLines.push('<table>')
+              testsStatsLines.push('<tr>')
+              const header = [
+                `<th>${passedIcon}`,
+                `<th>${failedIcon}`,
+                `<th>${skippedIcon}`,
+                `<th>${expectedFailureIcon}`,
+                `<th>:stopwatch:`
+              ].join('')
+              testsStatsLines.push(header)
+    
+              testsStatsLines.push('<tr>')
+              let failedCount: string
+              if (failed > 0) {
+                failedCount = `<b>${failed} (${failedRate}%)</b>`
+              } else {
+                failedCount = `${failed} (${failedRate}%)`
+              }
+              const cols = [
+                `<td align="right" width="154px">${passed} (${passedRate}%)`,
+                `<td align="right" width="154px">${failedCount}`,
+                `<td align="right" width="154px">${skipped} (${skippedRate}%)`,
+                `<td align="right" width="154px">${expectedFailure} (${expectedFailureRate}%)`,
+                `<td align="right" width="154px">${testDuration}s`
+              ].join('')
+              testsStatsLines.push(cols)
+              testsStatsLines.push('</table>\n')
+    
+              testDetail.lines.push(testsStatsLines.join('\n'))
+
+              testDetailTable.push(`<table>`)
+            }
+
             const groupStatusImage = Image.testStatus(groupStatus)
 
             let skippedPassedTests = 0
