@@ -273,6 +273,145 @@ export class Formatter {
       }
 
       chapterSummary.content.push('---\n')
+
+      const testFailures = new TestFailures()
+      const annotations: Annotation[] = []
+      for (const [, results] of Object.entries(chapter.sections)) {
+        const testResultSummaryName = results.summary.name
+
+        const detailGroup = results.details.reduce(
+          (groups: {[key: string]: actionTestSummaries}, detail) => {
+            const d = detail as actionTestSummary & {group?: string}
+            if (d.group) {
+              if (groups[d.group]) {
+                groups[d.group].push(detail)
+              } else {
+                groups[d.group] = [detail]
+              }
+            }
+            return groups
+          },
+          {}
+        )
+
+        for (const [, details] of Object.entries(detailGroup)) {
+          const configurationGroup = details.reduce(
+            (groups: {[key: string]: actionTestSummaries}, detail) => {
+              if (detail.identifier) {
+                if (groups[detail.identifier]) {
+                  groups[detail.identifier].push(detail)
+                } else {
+                  groups[detail.identifier] = [detail]
+                }
+              }
+              return groups
+            },
+            {}
+          )
+
+          for (const [, details] of Object.entries(configurationGroup)) {
+            for (const [, detail] of details.entries()) {
+              const testResult = detail as ActionTestMetadata
+
+              if (testResult.summaryRef) {
+                const summary: ActionTestSummary = await this.parser.parse(
+                  testResult.summaryRef.id
+                )
+
+                const testFailureGroup = new TestFailureGroup(
+                  testResultSummaryName || '',
+                  summary.identifier || '',
+                  summary.name || ''
+                )
+                testFailures.failureGroups.push(testFailureGroup)
+
+                if (summary.failureSummaries) {
+                  const testFailure = new TestFailure()
+                  testFailureGroup.failures.push(testFailure)
+
+                  const failureSummaries = collectFailureSummaries(
+                    summary.failureSummaries
+                  )
+                  for (const failureSummary of failureSummaries) {
+                    testFailure.lines.push(`${failureSummary.contents}`)
+
+                    const workspace = path.dirname(
+                      `${testReport.creatingWorkspaceFilePath}`
+                    )
+                    let filepath = ''
+                    if (failureSummary.filePath) {
+                      filepath = failureSummary.filePath.replace(
+                        `${workspace}/`,
+                        ''
+                      )
+                    }
+                    if (
+                      filepath &&
+                      failureSummary.lineNumber &&
+                      failureSummary.message
+                    ) {
+                      const annotation = new Annotation(
+                        filepath,
+                        failureSummary.lineNumber,
+                        failureSummary.lineNumber,
+                        'failure',
+                        failureSummary.message,
+                        failureSummary.issueType
+                      )
+                      annotations.push(annotation)
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      for (const annotation of annotations) {
+        testReport.annotations.push(annotation)
+      }
+
+      chapterSummary.content.push(`### ${failedIcon} Failures`)
+      const summaryFailures: string[] = []
+
+      for (const failureGroup of testFailures.failureGroups) {
+        if (failureGroup.failures.length) {
+          const testIdentifier = `${failureGroup.summaryIdentifier}_${failureGroup.identifier}`
+          const anchorName = anchorIdentifier(testIdentifier)
+          const anchorTag = anchorNameTag(`${testIdentifier}_failure-summary`)
+          const testMethodLink = `${anchorTag}<a href="${anchorName}">${failureGroup.summaryIdentifier}/${failureGroup.identifier}</a>`
+          summaryFailures.push(`<h4>${testMethodLink}</h4>`)
+          for (const failure of failureGroup.failures) {
+            for (const line of failure.lines) {
+              summaryFailures.push(line)
+            }
+          }
+        }
+      }
+      if (summaryFailures.length) {
+        chapterSummary.content.push(summaryFailures.join('\n'))
+        chapterSummary.content.push('')
+      } else {
+        chapterSummary.content.push('All tests passed :tada:\n')
+      }
+
+      if (testReport.codeCoverage && options.showCodeCoverage) {
+        const workspace = path.dirname(
+          `${testReport.creatingWorkspaceFilePath}`
+        )
+        chapterSummary.content.push('---\n')
+
+        const re = new RegExp(`${workspace}/`, 'g')
+        let root = ''
+        if (process.env.GITHUB_REPOSITORY) {
+          const pr = github.context.payload.pull_request
+          const sha = (pr && pr.head.sha) || github.context.sha
+          root = `${github.context.serverUrl}/${github.context.repo.owner}/${github.context.repo.repo}/blob/${sha}/`
+        }
+        chapterSummary.content.push(
+          testReport.codeCoverage.lines.join('\n').replace(re, root)
+        )
+      }
     }
     return testReport
   }
