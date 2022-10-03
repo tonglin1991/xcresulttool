@@ -181,6 +181,7 @@ export class Formatter {
 
         const group: TestSummaryStatsGroup = {}
         for (const [identifier, details] of Object.entries(detailGroup)) {
+          let isSuccess = false
           const [stats, duration] = details.reduce(
             ([stats, duration]: [TestSummaryStats, number], detail) => {
               const test = detail as ActionTestSummary
@@ -188,6 +189,7 @@ export class Formatter {
                 switch (test.testStatus) {
                   case 'Success':
                     stats.passed++
+                    isSuccess = true
                     break
                   case 'Failure':
                     stats.failed++
@@ -216,13 +218,14 @@ export class Formatter {
           testSummary.stats.expectedFailure += stats.expectedFailure
           testSummary.stats.total += stats.total
           testSummary.duration += duration
-
-          group[identifier] = {
-            passed: stats.passed,
-            failed: stats.failed,
-            skipped: stats.skipped,
-            expectedFailure: stats.expectedFailure,
-            total: stats.total
+          if (isSuccess == false) {
+            group[identifier] = {
+              passed: stats.passed,
+              failed: stats.failed,
+              skipped: stats.skipped,
+              expectedFailure: stats.expectedFailure,
+              total: stats.total
+            }
           }
         }
 
